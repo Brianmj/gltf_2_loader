@@ -1,47 +1,26 @@
 // nlon_json_test.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include "pch.h"
+//#include "json.hpp"
+#include <iostream>
+#include <iomanip>
 #include "gltf.hpp"
 
-using json = nlohmann::json;
-const std::string file_name = "box.gltf";
+
+//using json = nlohmann::json;
+const std::string file_name{ "box.gltf" };
+const std::string simple_mesh_name{ "mesh_primitives_00.gltf" };
+std::string_view node = "Cube";
 
 using namespace std;
 
 int main()
 {
-	ifstream file(file_name);
+	//gltf primitive{ simple_mesh_name };
 
-	if (!file) { cout << "Unable to open file\n"; }
-	else { cout << "File successfully opened\n"; }
+	gltf box(file_name);
+	cout << boolalpha << box.has_node(node) << "\n";
+	box.build_node(node);
 
-	json j;
-
-	file >> j;
-
-	//cout << j.dump(4) << "\n";
-
-	for (auto f = j.begin(); f != j.end(); ++f)
-	{
-		if (f.key() == std::string("buffers"))
-		{
-			cout << f.key() << " ========== " << f.value() << "\n\n";
-			auto arr = f.value();
-			cout << arr.size() << "\n";
-			cout << arr.type_name() << "\n";
-			cout << boolalpha << "iter is an array? " << f->is_array() << "\n";
-
-			auto b = arr.begin();
-			auto e = arr.end();
-
-			while (b != e)
-			{
-				cout << "is object: " << boolalpha << b->is_object() << "\n";
-				int byte_size = b->value("byteLength", 0);
-				std::string uri = b->value("uri", std::string());
-			}
-			
-		}
-	}
+	return 0;
 }

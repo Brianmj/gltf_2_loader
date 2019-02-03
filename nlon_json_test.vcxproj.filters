@@ -40,5 +40,11 @@
     <None Include="box.gltf">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="Mesh_Primitives_00.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Mesh_Primitives_00.gltf">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
