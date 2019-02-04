@@ -6,6 +6,8 @@
 #include <array>
 #include <algorithm>
 
+namespace knu
+{
 using json = nlohmann::json;
 
 class gltf::impl
@@ -39,8 +41,9 @@ private:
 		FLOAT = 5126};
 	enum data_type {SCALAR, VEC2, VEC3, VEC4, MAT2, MAT3, MAT4};
 	enum buffer_target {ARRAY_BUFFER = 34962, ELEMENT_ARRAY_BUFFER = 34963};
-	enum rendering_type {POINTS, LINES, LINE_LOOP, LINE_STRIP, TRIANGLES,
+	enum rendering_mode {POINTS, LINES, LINE_LOOP, LINE_STRIP, TRIANGLES,
 		TRIANGLE_STRIP,	TRIANGLE_FAN};		// Default is 4, Triangles
+	// rendering_mode perfectly matches the values of GL_POINTS, GL_LINES and so on
 
 private:
 	struct accessors_struct
@@ -102,7 +105,7 @@ private:
 		
 		int indices_ref;
 		int materials_ref;
-		rendering_type rendering_mode;		// POINTS, LINES, TRIANGLES
+		rendering_mode render_mode;		// POINTS, LINES, TRIANGLES 
 	};
 
 	struct meshes_struct
@@ -157,6 +160,48 @@ private:
 		std::uint16_t* last = start + indices_count;
 
 		return std::vector<std::uint16_t>{start, last};
+	}
+
+	gltf_component_info get_component_info(std::uint32_t accessor_index)
+	{
+		const accessors_struct& accessor_ref = accessors_vec[accessor_index];
+		const buffer_views_struct& buffer_views_ref = buffer_views_vec[accessor_ref.buffer_view_ref];
+
+		const std::size_t buffer_index = buffer_views_ref.buffer_index;
+		const std::size_t byte_offset = accessor_ref.byte_offset + buffer_views_ref.byte_offset;
+		const std::uint32_t component_type = accessor_ref.c_type;
+
+		std::array<double, 3> min_bounds = { 0, 0, 0 };
+		std::array<double, 3> max_bounds = { 0, 0, 0 };
+
+		if (accessor_ref.has_min_max)
+		{
+			min_bounds = accessor_ref.min_bounds;
+			max_bounds = accessor_ref.max_bounds;
+		}
+
+		std::size_t component_count = 0;
+		switch (accessor_ref.d_type)
+		{
+		case data_type::VEC2:	component_count = 2; break;
+		case data_type::VEC3:	component_count = 3; break;
+		case data_type::VEC4:	component_count = 4; break;
+		default: {
+			// what????!!
+			throw std::runtime_error("Unsupported data type specified");
+		}break;
+		}
+
+		gltf_component_info info;
+		info.buffer_index = buffer_index;
+		info.byte_offset = byte_offset;
+		info.component_count = component_count;
+		info.component_type = component_type;
+		info.min_bounds = min_bounds;
+		info.max_bounds = max_bounds;
+		info.valid = true;	// confirm that the info here is good
+
+		return info;
 	}
 
 private:
@@ -544,13 +589,13 @@ private:
 
 				switch (render_type)
 				{
-				case 0: primitives_ref.rendering_mode = POINTS; break;
-				case 1: primitives_ref.rendering_mode = LINES; break;
-				case 2: primitives_ref.rendering_mode = LINE_LOOP; break;
-				case 3: primitives_ref.rendering_mode = LINE_STRIP; break;
-				case 4: primitives_ref.rendering_mode = TRIANGLES; break;
-				case 5: primitives_ref.rendering_mode = TRIANGLE_STRIP; break;
-				case 6: primitives_ref.rendering_mode = TRIANGLE_FAN; break;
+				case 0: primitives_ref.render_mode = POINTS; break;
+				case 1: primitives_ref.render_mode = LINES; break;
+				case 2: primitives_ref.render_mode = LINE_LOOP; break;
+				case 3: primitives_ref.render_mode = LINE_STRIP; break;
+				case 4: primitives_ref.render_mode = TRIANGLES; break;
+				case 5: primitives_ref.render_mode = TRIANGLE_STRIP; break;
+				case 6: primitives_ref.render_mode = TRIANGLE_FAN; break;
 				}
 
 				primitives_ref.materials_ref = primitives_iter_begin->value(materials_key, no_value);
@@ -788,13 +833,26 @@ private:
 				bs.data});
 		});
 
-		for (auto primitives = m.primitives_vec.begin(); primitives != m.primitives_vec.end(); ++primitives)
+		for (auto primitive = std::begin(m.primitives_vec); primitive != std::end(m.primitives_vec); ++primitive)
 		{
-			std::vector<std::uint16_t> indices = get_indices(*primitives);
+			std::vector<std::uint16_t> indices = get_indices(*primitive);
 			node.mesh.sub_meshes.emplace_back(gltf_partial_mesh{});
-			gltf_partial_mesh& sub_mesh = node.mesh.sub_meshes.back();
+			gltf_partial_mesh& sub_mesh_ref = node.mesh.sub_meshes.back();
 
-			sub_mesh.indices = indices;
+			gltf_component_info position_info;
+			if(primitive->has_position)
+				position_info = get_component_info(primitive->position_index);
+
+			gltf_component_info normal_info;
+			if (primitive->has_normal)
+				normal_info = get_component_info(primitive->normal_index);
+
+			// future, texture coordinates
+
+			sub_mesh_ref.render_mode = primitive->render_mode;
+			sub_mesh_ref.indices = indices;
+			sub_mesh_ref.position_info = position_info;
+			sub_mesh_ref.normal_info = normal_info;
 		}
 	}
 };
@@ -813,15 +871,14 @@ bool gltf::has_node(std::string_view node_name)
 	return impl_ptr->has_node(node_name);
 }
 
-void gltf::build_node(std::string_view node_name)
+std::pair<bool, gltf_node> gltf::build_node(std::string_view node_name)
 {	
 	gltf_node node;
 	if (!has_node(node_name))
-		return;
+		return { false, node };
 
 	impl_ptr->build_node(node_name, node);;
-	//return {true, node};
+	return {true, node};
 }
 
-
-
+} // namespace knu

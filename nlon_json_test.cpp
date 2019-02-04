@@ -18,9 +18,9 @@ int main()
 {
 	//gltf primitive{ simple_mesh_name };
 
-	gltf box(file_name);
+	knu::gltf box(file_name);
 	cout << boolalpha << box.has_node(node) << "\n";
-	box.build_node(node);
+	auto [success, n] = box.build_node(node);
 
 	return 0;
 }
