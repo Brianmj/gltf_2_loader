@@ -40,6 +40,11 @@ namespace knu
 		std::vector<gltf_buffer> buffers;
 	};
 
+	struct gltf_material
+	{
+
+	};
+
 	struct gltf_node
 	{
 		std::string_view node_name = {};
