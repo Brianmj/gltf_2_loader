@@ -2,8 +2,6 @@
 #include "json.hpp"
 #include <fstream>
 #include <iostream>
-#include <vector>
-#include <array>
 #include <algorithm>
 
 namespace knu
@@ -14,9 +12,9 @@ namespace knu
 	{
 	public:
 		impl() {}
-		impl(std::string gltf_file) { open_gltf_file(gltf_file); }
+		impl(std::string_view gltf_file) { open_gltf_file(gltf_file); }
 
-		void load(std::string gltf_file) { open_gltf_file(gltf_file); }
+		void load(std::string_view gltf_file) { open_gltf_file(gltf_file); }
 		bool has_node(std::string_view node_name)
 		{
 			auto iter = find_node(node_name);
@@ -31,6 +29,7 @@ namespace knu
 			{
 				node.node_name = node_name;
 				load_glft_transformation(node_iter, node);
+
 				if (node_iter->has_mesh)
 					load_gltf_mesh(meshes_vec[node_iter->mesh_index], node);
 			}
@@ -216,17 +215,17 @@ namespace knu
 
 	private:
 
-		void open_gltf_file(std::string gltf_file)
+		void open_gltf_file(std::string_view gltf_file)
 		{
 			json j = load_file(gltf_file);
 			parse_json(j);
 		}
 
-		json load_file(std::string gltf_file)
+		json load_file(std::string_view gltf_file)
 		{
-			std::ifstream file{ gltf_file };
+			std::ifstream file{ std::string(gltf_file) };
 			if (!file) throw std::runtime_error{ "Unable to open file: "
-				+ gltf_file };
+				+ std::string(gltf_file) };
 
 			json j;
 			file >> j;	
@@ -747,9 +746,9 @@ namespace knu
 				{
 					nodes_vec.back().has_scale = true;
 					json::value_type val = scale_iter.value();
-					double a = val[0];
-					double b = val[1];
-					double c = val[2];
+					const double a = val[0];
+					const double b = val[1];
+					const double c = val[2];
 
 					nodes_vec.back().scale[0] = a; nodes_vec.back().scale[1] = b;
 					nodes_vec.back().scale[2] = c;
@@ -825,7 +824,21 @@ namespace knu
 		void load_gltf_mesh(const meshes_struct &m, gltf_node &node)
 		{
 			node.mesh.mesh_name = m.mesh_name;
+
+			// load all the materials
+			std::for_each(std::begin(materials_vec), std::end(materials_vec),
+				[&node](const materials_struct & ms)
+			{
+				node.mesh.materials.emplace_back(gltf_material{});
+				gltf_material& mat_ref = node.mesh.materials.back();
+
+				mat_ref.material_name = ms.material_name;
+				mat_ref.base_color_factor = ms.material_roughness.base_color_factor;
+				mat_ref.metallic_factor = ms.material_roughness.metallic_factor;
+				mat_ref.roughness_factor = ms.material_roughness.roughness_factor;
+			});
 		
+			// copy all the buffers
 			std::for_each(std::begin(buffers_vec), std::end(buffers_vec),
 				[&node](const buffers_struct & bs)
 			{
@@ -847,9 +860,12 @@ namespace knu
 				if (primitive->has_normal)
 					normal_info = get_component_info(primitive->normal_index);
 
+				std::uint32_t material_index = primitive->materials_ref;
+
 				// future, texture coordinates
 
 				sub_mesh_ref.render_mode = primitive->render_mode;
+				sub_mesh_ref.material_index = material_index;
 				sub_mesh_ref.indices = indices;
 				sub_mesh_ref.position_info = position_info;
 				sub_mesh_ref.normal_info = normal_info;
@@ -857,10 +873,17 @@ namespace knu
 		}
 	};
 		
-	gltf::gltf() : impl_ptr{ new impl } {}
-	gltf::gltf(std::string gltf_file) : impl_ptr{ new impl(gltf_file) } {}
+	gltf::gltf() :
+		impl_ptr{ std::make_unique<impl>() }
+	{}
+	gltf::gltf(std::string_view gltf_file) :
+		impl_ptr{ std::make_unique<impl>(gltf_file) }
+	{}
+
 	gltf::~gltf() = default;
 
+	// no copying
+	
 	void gltf::load(std::string gltf_file)
 	{
 		impl_ptr->load(gltf_file);
@@ -881,4 +904,24 @@ namespace knu
 		return {true, node};
 	}
 
+	std::pair<bool, gltf_node> load_gltf_node(std::string_view model_name,
+		std::string_view node_name)
+	{
+		gltf_node node;
+		bool success = false;
+		try {
+			gltf model(model_name);
+			if (!model.has_node(node_name))
+				return { false, gltf_node{} };
+
+			std::tie(success, node) = model.build_node(node_name);
+		}
+		catch (std::runtime_error& e)
+		{
+			std::cerr << e.what() << "\n";
+			return { false, gltf_node{} };
+		}
+
+		return { success, node };
+	}
 } // namespace knu
