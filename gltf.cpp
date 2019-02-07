@@ -204,7 +204,6 @@ namespace knu
 		}
 
 	private:
-
 		std::vector<accessors_struct> accessors_vec;
 		asset_struct asset;
 		std::vector<buffers_struct> buffers_vec;
@@ -624,7 +623,6 @@ namespace knu
 			}
 		}
 
-
 		/*void parse_meshes(json::value_type val)
 		{
 		
@@ -689,7 +687,6 @@ namespace knu
 			}
 
 			meshes_vec = vms;
-
 		}*/
 
 		void parse_nodes(json::value_type val)
@@ -881,8 +878,6 @@ namespace knu
 	{}
 
 	gltf::~gltf() = default;
-
-	// no copying
 	
 	void gltf::load(std::string gltf_file)
 	{
