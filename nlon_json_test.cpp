@@ -17,13 +17,13 @@ using namespace std;
 
 int main()
 {
-	knu::gltf box(file_name);
+	knu::graphics::gltf box(file_name);
 
 	bool success;
-	knu::gltf_node cube_node;
+	knu::graphics::gltf_node cube_node;
 	cout << boolalpha << box.has_node(node_name) << "\n";
 	{
-		std::tie(success, cube_node) = knu::load_gltf_node(file_name,
+		std::tie(success, cube_node) = knu::graphics::load_gltf_node(file_name,
 			node_name);
 	}
 
