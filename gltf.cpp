@@ -431,13 +431,13 @@ namespace knu
 				auto buffers_begin = std::begin(buffers_vec);
 				auto buffers_end = std::end(buffers_vec);
 
-				using namespace std::filesystem;
+				namespace fs = std::filesystem;
 
-				path model_path{ model_file_str };
+				fs::path model_path{ model_file_str };
 
 				std::string separator;
 				if (model_path.has_parent_path())
-					separator = path::preferred_separator;
+					separator = fs::path::preferred_separator;
 
 				std::string parent_path;
 				if (model_path.has_parent_path())
@@ -446,6 +446,12 @@ namespace knu
 				// with this code, we're adding the constraint that .gltf files will be in the
 				// same directory as the .bin files
 				std::string path = parent_path + separator;
+
+				// above code needs to be reworked
+				// a path should be created for the uri
+				// it should then be checked to see if it exists
+				// if it doesn't, then the path leading to the model should
+				// be used. If that doesn't work, then I don't know.
 
 				while (buffers_begin != buffers_end)
 				{
