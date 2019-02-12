@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
+#include <filesystem>
 
 namespace knu
 {
@@ -217,12 +218,17 @@ namespace knu
 			std::vector<materials_struct> materials_vec;
 			std::vector<meshes_struct> meshes_vec;
 			std::vector<nodes_struct> nodes_vec;
+			std::string model_file_str;
 
 		private:
 
 			void open_gltf_file(std::string_view gltf_file)
 			{
 				json j = load_file(gltf_file);
+
+				// store the file name and its path for use
+				// in the GLTF_BUFFER case
+				model_file_str = gltf_file;
 				parse_json(j);
 			}
 
@@ -425,9 +431,25 @@ namespace knu
 				auto buffers_begin = std::begin(buffers_vec);
 				auto buffers_end = std::end(buffers_vec);
 
+				using namespace std::filesystem;
+
+				path model_path{ model_file_str };
+
+				std::string separator;
+				if (model_path.has_parent_path())
+					separator = path::preferred_separator;
+
+				std::string parent_path;
+				if (model_path.has_parent_path())
+					parent_path = model_path.parent_path().string();
+
+				// with this code, we're adding the constraint that .gltf files will be in the
+				// same directory as the .bin files
+				std::string path = parent_path + separator;
+
 				while (buffers_begin != buffers_end)
 				{
-					std::ifstream file(buffers_begin->uri, std::ios::binary);
+					std::ifstream file(path + buffers_begin->uri, std::ios::binary);
 
 					if (!file)
 						throw std::runtime_error("Unable to open file: " + buffers_begin->uri);
@@ -908,8 +930,14 @@ namespace knu
 		std::pair<bool, gltf_node> load_gltf_node(std::string_view model_name,
 			std::string_view node_name)
 		{
+			using namespace std::filesystem;
+
 			gltf_node node;
 			bool success = false;
+
+			if (!exists(path{ model_name }))
+				return { false, node };
+
 			try {
 				gltf model(model_name);
 				if (!model.has_node(node_name))
