@@ -47,7 +47,7 @@ namespace knu
 
 		struct gltf_mesh
 		{
-			std::string_view mesh_name;
+			std::string mesh_name;
 			std::vector<gltf_partial_mesh> sub_meshes;
 			std::vector<gltf_buffer> buffers;
 			std::vector<gltf_material> materials;
@@ -55,7 +55,7 @@ namespace knu
 
 		struct gltf_node
 		{
-			std::string_view node_name = {};
+			std::string node_name = {};
 			std::array<double, 3> scale = { 0, 0, 0 };
 			std::array<double, 3> translation = { 0, 0, 0 };
 			std::array<double, 4> rotation = { 0, 0, 0, 1 }; // unit quaternion in form [vec3, w]
@@ -66,7 +66,7 @@ namespace knu
 		{
 		public:
 			gltf();
-			gltf(std::string_view gltf_file);
+			gltf(std::string gltf_file, std::string relative_path);
 			// no copying, but moving is ok
 			gltf(const gltf&) = delete;
 			gltf& operator=(const gltf&) = delete;
@@ -81,9 +81,9 @@ namespace knu
 			// of the cpp file so that it can "see" the entire definition
 			// of impl
 
-			void load(std::string gltf_file);
-			bool has_node(std::string_view node_name);
-			std::pair<bool, gltf_node> build_node(std::string_view node_name);
+			void load(std::string gltf_file, std::string relative_path);
+			bool has_node(std::string node_name);
+			std::pair<bool, gltf_node> build_node(std::string node_name);
 
 		private:
 			class impl;
@@ -91,8 +91,9 @@ namespace knu
 		};
 
 		// a convenience function for loading a model with a node
-		std::pair<bool, gltf_node> load_gltf_node(std::string_view model_name,
-			std::string_view node_name);
+		std::pair<bool, gltf_node> load_gltf_node(std::string model_name,
+			std::string relative_path,
+			std::string node_name);
 	}
 }
 

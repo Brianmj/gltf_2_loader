@@ -34,22 +34,16 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="box.bin">
+    <None Include="models\box.bin">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="box.gltf">
+    <None Include="models\box.gltf">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Mesh_Primitives_00.bin">
+    <None Include="models\Mesh_Primitives_00.bin">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Mesh_Primitives_00.gltf">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="..\..\..\Downloads\GeneratedAssets-0.6.0\Mesh_PrimitivesUV\Mesh_PrimitivesUV_01.bin">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="..\..\..\Downloads\GeneratedAssets-0.6.0\Mesh_PrimitivesUV\Mesh_PrimitivesUV_01.gltf">
+    <None Include="models\Mesh_Primitives_00.gltf">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

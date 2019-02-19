@@ -166,12 +166,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Downloads\GeneratedAssets-0.6.0\Mesh_PrimitivesUV\Mesh_PrimitivesUV_01.bin" />
-    <None Include="..\..\..\Downloads\GeneratedAssets-0.6.0\Mesh_PrimitivesUV\Mesh_PrimitivesUV_01.gltf" />
-    <None Include="box.bin" />
-    <None Include="box.gltf" />
-    <None Include="Mesh_Primitives_00.bin" />
-    <None Include="Mesh_Primitives_00.gltf" />
+    <None Include="models\box.bin" />
+    <None Include="models\box.gltf" />
+    <None Include="models\Mesh_Primitives_00.bin" />
+    <None Include="models\Mesh_Primitives_00.gltf" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

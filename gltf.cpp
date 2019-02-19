@@ -15,10 +15,17 @@ namespace knu
 		{
 		public:
 			impl() {}
-			impl(std::string_view gltf_file) { open_gltf_file(gltf_file); }
+			impl(std::string gltf_file, std::string relative_path) 
+			{ 
+				open_gltf_file(gltf_file, relative_path);
+			}
 
-			void load(std::string_view gltf_file) { open_gltf_file(gltf_file); }
-			bool has_node(std::string_view node_name)
+			void load(std::string gltf_file, std::string relative_path)
+			{
+				open_gltf_file(gltf_file, relative_path);
+			}
+
+			bool has_node(std::string node_name)
 			{
 				auto iter = find_node(node_name);
 				return iter != std::end(nodes_vec);
@@ -219,24 +226,30 @@ namespace knu
 			std::vector<meshes_struct> meshes_vec;
 			std::vector<nodes_struct> nodes_vec;
 			std::string model_file_str;
+			std::string model_path_str;
 
 		private:
 
-			void open_gltf_file(std::string_view gltf_file)
+			void open_gltf_file(std::string gltf_file, std::string relative_path)
 			{
-				json j = load_file(gltf_file);
+				json j = load_file(gltf_file, relative_path);
 
 				// store the file name and its path for use
 				// in the GLTF_BUFFER case
 				model_file_str = gltf_file;
+				model_path_str = relative_path;
+
+				// do the actual parsing of the json file here
 				parse_json(j);
 			}
 
-			json load_file(std::string_view gltf_file)
+			json load_file(std::string gltf_file, std::string relative_path)
 			{
-				std::ifstream file{ std::string(gltf_file) };
+				std::string file_path = relative_path + gltf_file;
+
+				std::ifstream file{ std::string(file_path) };
 				if (!file) throw std::runtime_error{ "Unable to open file: "
-					+ std::string(gltf_file) };
+					+ std::string(file_path) };
 
 				json j;
 				file >> j;
@@ -433,28 +446,14 @@ namespace knu
 
 				namespace fs = std::filesystem;
 
-				fs::path model_path{ model_file_str };
-
-				std::string separator;
-				if (model_path.has_parent_path())
-					separator = fs::path::preferred_separator;
-
-				std::string parent_path;
-				if (model_path.has_parent_path())
-					parent_path = model_path.parent_path().string();
-
-				// with this code, we're adding the constraint that .gltf files will be in the
-				// same directory as the .bin files
-				std::string path = parent_path + separator;
-
-				// above code needs to be reworked
-				// a path should be created for the uri
-				// it should then be checked to see if it exists
-				// if it doesn't, then the path leading to the model should
-				// be used. If that doesn't work, then I don't know.
+				// This area probably needs some more work
+				// Fow now, make sure that path ends with a separator
+				// such as "models/" or "images/" or "" if data is in current director
+				std::string path = model_path_str;
 
 				while (buffers_begin != buffers_end)
 				{
+					// all this should probably be placed into its own function (read_binary_data(file_name)
 					std::ifstream file(path + buffers_begin->uri, std::ios::binary);
 
 					if (!file)
@@ -511,75 +510,6 @@ namespace knu
 					++materials_iter_begin;
 				}
 			}
-
-			/*void parse_materials(json::value_type val)
-			{
-				// the following is hideous code, but it's the only solution I came up with.
-				//
-				std::cout << std::boolalpha << "is materials arm an array: " << val.is_array() << "\n";
-
-				auto first_iter = std::begin(val);
-				auto end_iter = std::end(val);
-
-				const std::string name_key = "name";
-				const std::string pbr_metallic_roughness_key = "pbrMetallicRoughness";
-				const std::string base_color_factor_key = "baseColorFactor";
-				const std::string metallic_factor_key = "metallicFactor";
-				const std::string roughness_factor_key = "roughnessFactor";
-
-				while (first_iter != end_iter)
-				{
-					auto n = first_iter->value(name_key, "");
-					auto material_properties = first_iter->find(pbr_metallic_roughness_key);
-
-					std::cout << "Is mat props is an object: " << std::boolalpha << material_properties->is_object();
-
-					auto mat_begin = material_properties->begin();
-
-					materials_struct ms;
-
-					ms.material_name = n;
-					while (mat_begin != material_properties->end())
-					{
-						auto current_key = mat_begin.key();
-						auto val_array = mat_begin.value();
-
-						std::cout << "val array is array: " << std::boolalpha << val_array.is_array() <<
-							"count: " << val_array.size() << "\n";
-
-						if (current_key == base_color_factor_key)
-						{
-							auto color_iter = std::begin(val_array);
-							double zeroth = *color_iter; ++color_iter;
-							double first = *color_iter; ++color_iter;
-							double second = *color_iter; ++color_iter;
-							double third = *color_iter; ++color_iter;
-
-							ms.base_color_factor[0] = zeroth; ms.base_color_factor[1] = first;
-							ms.base_color_factor[2] = second; ms.base_color_factor[3] = third;
-						}
-
-						if (current_key == metallic_factor_key)
-						{
-							double metallic_f = mat_begin.value();
-							ms.metallic_factor = metallic_f;
-						}
-
-						if (current_key == roughness_factor_key)
-						{
-							double roughness_f = mat_begin.value();
-							ms.roughness_factor = roughness_f;
-						}
-
-						++mat_begin;
-					}
-
-					materials_vec.emplace_back(ms);
-					memset(&ms, 0, sizeof(materials_struct));
-
-					++first_iter;
-				}
-			}*/
 
 			void parse_meshes2(json::value_type val)
 			{
@@ -656,72 +586,6 @@ namespace knu
 					++mesh_iter_begin;
 				}
 			}
-
-			/*void parse_meshes(json::value_type val)
-			{
-
-				std::cout << "meshes is array: " << std::boolalpha << val.is_array() << "\n";
-				std::cout << "meshes array size is: " << val.size() << "\n";
-
-				std::vector<meshes_struct> vms;
-
-				const std::string primitives_key = "primitives";
-				const std::string attributes_key = "attributes";
-				const std::string indices_key = "indices";
-				const std::string materials_key = "material";
-				const std::string normal_key = "NORMAL";
-				const std::string position_key = "POSITION";
-				const std::string texture_key = "TEXTURE";
-
-				for (std::size_t i = 0; i < val.size(); ++i)
-				{
-					vms.emplace_back(meshes_struct{});
-
-					std::string mesh_name = val[i].value("name", "");
-					vms.back().mesh_name = mesh_name;
-
-					json::iterator primitives = val[i].find(primitives_key);
-
-					auto b = primitives->begin();
-					auto e = primitives->end();
-
-					while (b != e)
-					{
-						vms.back().primitives_vec.emplace_back(primitives_struct{});
-						primitives_struct &p = vms.back().primitives_vec.back();
-
-						std::cout << "Found primitves arm\n";
-						std::cout << "Primitives are an array: " << std::boolalpha << b->is_array() << "\n";
-						std::cout << "Primitives size: " << b->size() << "\n";
-						auto attrib_obj = b->find(attributes_key);
-
-						std::cout << *attrib_obj << "\n";
-
-						if (auto s = attrib_obj->size(); s != 0)
-						{
-							auto normal_idx = attrib_obj->value(normal_key, 0);
-							auto position_idx = attrib_obj->value(position_key, 0);
-
-							p.has_position = true;
-							p.has_normal = true;
-
-							p.position_index = position_idx;
-							p.normal_index = normal_idx;
-
-						}
-
-						auto indices_ref = b->value(indices_key, 0);
-						auto materials_ref = b->value(materials_key, 0);
-
-						p.indices_ref = indices_ref;
-						p.materials_ref = materials_ref;
-
-						++b;
-					}
-				}
-
-				meshes_vec = vms;
-			}*/
 
 			void parse_nodes(json::value_type val)
 			{
@@ -907,23 +771,23 @@ namespace knu
 		gltf::gltf() :
 			impl_ptr{ std::make_unique<impl>() }
 		{}
-		gltf::gltf(std::string_view gltf_file) :
-			impl_ptr{ std::make_unique<impl>(gltf_file) }
+		gltf::gltf(std::string gltf_file, std::string relative_path) :
+			impl_ptr{ std::make_unique<impl>(gltf_file, relative_path) }
 		{}
 
 		gltf::~gltf() = default;
 
-		void gltf::load(std::string gltf_file)
+		void gltf::load(std::string gltf_file, std::string relative_path)
 		{
-			impl_ptr->load(gltf_file);
+			impl_ptr->load(gltf_file, relative_path);
 		}
 
-		bool gltf::has_node(std::string_view node_name)
+		bool gltf::has_node(std::string node_name)
 		{
 			return impl_ptr->has_node(node_name);
 		}
 
-		std::pair<bool, gltf_node> gltf::build_node(std::string_view node_name)
+		std::pair<bool, gltf_node> gltf::build_node(std::string node_name)
 		{
 			gltf_node node;
 			if (!has_node(node_name))
@@ -933,19 +797,20 @@ namespace knu
 			return { true, node };
 		}
 
-		std::pair<bool, gltf_node> load_gltf_node(std::string_view model_name,
-			std::string_view node_name)
+		std::pair<bool, gltf_node> load_gltf_node(std::string model_name,
+			std::string relative_path,
+			std::string node_name)
 		{
 			using namespace std::filesystem;
 
 			gltf_node node;
 			bool success = false;
 
-			if (!exists(path{ model_name }))
+			if (!exists(path{relative_path + model_name }))
 				return { false, node };
 
 			try {
-				gltf model(model_name);
+				gltf model(model_name, relative_path);
 				if (!model.has_node(node_name))
 					return { false, gltf_node{} };
 
